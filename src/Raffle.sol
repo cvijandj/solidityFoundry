@@ -13,7 +13,7 @@ import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2
  */
 contract Raffle is VRFConsumerBaseV2 {
     error Raffle_NotEnoughtETHSent();
-    error Raffle_TransferFailed();
+    error Raffle_TransferFailed(bytes returnData);
     error Raffle_RaffleNotOpen();
     error Raffle_UpkeepNotNeeded(
         uint256 currentBalance,
@@ -128,11 +128,13 @@ contract Raffle is VRFConsumerBaseV2 {
 
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
-        emit PickedWinner(winner);
 
-        (bool success, ) = winner.call{value: address(this).balance}("");
+        emit PickedWinner(winner);
+        (bool success, bytes memory result) = winner.call{
+            value: address(this).balance
+        }("");
         if (!success) {
-            revert Raffle_TransferFailed();
+            revert Raffle_TransferFailed(result);
         }
     }
 
@@ -148,5 +150,17 @@ contract Raffle is VRFConsumerBaseV2 {
 
     function getPlayer(uint256 indexOfPlayer) external view returns (address) {
         return s_players[indexOfPlayer];
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
+    }
+
+    function getLengthOfPlayers() external view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLastTimestamp() external view returns (uint256) {
+        return s_lastTimeStamp;
     }
 }
